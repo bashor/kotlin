@@ -45,15 +45,16 @@ import java.util.Collections;
 import java.util.List;
 
 public class NamespaceComparator {
-    public static final Configuration DONT_INCLUDE_METHODS_OF_OBJECT = new Configuration(false, false, false, Predicates.<FqNameUnsafe>alwaysTrue());
-    public static final Configuration RECURSIVE = new Configuration(false, false, true, Predicates.<FqNameUnsafe>alwaysTrue());
-    public static final Configuration RECURSIVE_ALL = new Configuration(true, true, true, Predicates.<FqNameUnsafe>alwaysTrue());
-
-    private static final DescriptorRenderer RENDERER = new DescriptorRendererBuilder()
+    private static final DescriptorRenderer DEFAULT_RENDERER = new DescriptorRendererBuilder()
             .setWithDefinedIn(false)
             .setExcludedAnnotationClasses(Arrays.asList(new FqName(ExpectedLoadErrorsUtil.ANNOTATION_CLASS_NAME)))
             .setOverrideRenderingPolicy(DescriptorRenderer.OverrideRenderingPolicy.RENDER_OPEN_OVERRIDE)
             .setVerbose(true).build();
+
+    public static final Configuration DONT_INCLUDE_METHODS_OF_OBJECT = new Configuration(false, false, false, Predicates.<FqNameUnsafe>alwaysTrue(), DEFAULT_RENDERER);
+
+    public static final Configuration RECURSIVE = new Configuration(false, false, true, Predicates.<FqNameUnsafe>alwaysTrue(), DEFAULT_RENDERER);
+    public static final Configuration RECURSIVE_ALL = new Configuration(true, true, true, Predicates.<FqNameUnsafe>alwaysTrue(), DEFAULT_RENDERER);
 
     private static final ImmutableSet<String> JAVA_OBJECT_METHOD_NAMES = ImmutableSet.of(
             "equals", "hashCode", "finalize", "wait", "notify", "notifyAll", "toString", "clone", "getClass");
@@ -76,7 +77,7 @@ public class NamespaceComparator {
         }
 
         boolean isPrimaryConstructor = descriptor instanceof ConstructorDescriptor && ((ConstructorDescriptor) descriptor).isPrimary();
-        printer.print(isPrimaryConstructor && conf.checkPrimaryConstructors ? "/*primary*/ " : "", RENDERER.render(descriptor));
+        printer.print(isPrimaryConstructor && conf.checkPrimaryConstructors ? "/*primary*/ " : "", conf.renderer.render(descriptor));
 
         if (descriptor instanceof ClassOrNamespaceDescriptor) {
             if (!topLevel) {
@@ -106,12 +107,12 @@ public class NamespaceComparator {
             PropertyDescriptor propertyDescriptor = (PropertyDescriptor) descriptor;
             PropertyGetterDescriptor getter = propertyDescriptor.getGetter();
             if (getter != null) {
-                printer.println(RENDERER.render(getter));
+                printer.println(conf.renderer.render(getter));
             }
 
             PropertySetterDescriptor setter = propertyDescriptor.getSetter();
             if (setter != null) {
-                printer.println(RENDERER.render(setter));
+                printer.println(conf.renderer.render(setter));
             }
 
             printer.popIndent();
@@ -219,29 +220,36 @@ public class NamespaceComparator {
         private final boolean checkPropertyAccessors;
         private final boolean includeMethodsOfJavaObject;
         private final Predicate<FqNameUnsafe> recurseIntoPackage;
+        private final DescriptorRenderer renderer;
 
         public Configuration(
                 boolean checkPrimaryConstructors,
                 boolean checkPropertyAccessors,
                 boolean includeMethodsOfJavaObject,
-                Predicate<FqNameUnsafe> recurseIntoPackage
+                Predicate<FqNameUnsafe> recurseIntoPackage,
+                DescriptorRenderer renderer
         ) {
             this.checkPrimaryConstructors = checkPrimaryConstructors;
             this.checkPropertyAccessors = checkPropertyAccessors;
             this.includeMethodsOfJavaObject = includeMethodsOfJavaObject;
             this.recurseIntoPackage = recurseIntoPackage;
+            this.renderer = renderer;
         }
 
         public Configuration filterRecursion(@NotNull Predicate<FqNameUnsafe> recurseIntoPackage) {
-            return new Configuration(checkPrimaryConstructors, checkPropertyAccessors, includeMethodsOfJavaObject, recurseIntoPackage);
+            return new Configuration(checkPrimaryConstructors, checkPropertyAccessors, includeMethodsOfJavaObject, recurseIntoPackage, renderer);
         }
 
         public Configuration checkPrimaryConstructors(boolean checkPrimaryConstructors) {
-            return new Configuration(checkPrimaryConstructors, checkPropertyAccessors, includeMethodsOfJavaObject, recurseIntoPackage);
+            return new Configuration(checkPrimaryConstructors, checkPropertyAccessors, includeMethodsOfJavaObject, recurseIntoPackage, renderer);
         }
 
         public Configuration checkPropertyAccessors(boolean checkPropertyAccessors) {
-            return new Configuration(checkPrimaryConstructors, checkPropertyAccessors, includeMethodsOfJavaObject, recurseIntoPackage);
+            return new Configuration(checkPrimaryConstructors, checkPropertyAccessors, includeMethodsOfJavaObject, recurseIntoPackage, renderer);
+        }
+
+        public Configuration withRenderer(@NotNull DescriptorRenderer renderer) {
+            return new Configuration(checkPrimaryConstructors, checkPropertyAccessors, includeMethodsOfJavaObject, recurseIntoPackage, renderer);
         }
     }
 }
