@@ -125,7 +125,7 @@
 
         <site>
             <id>github-project-site</id>
-            <url>gitsite:git@github.com/JetBrains/kotlin.git</url>
+            <url>gitsite:git@github.com/bashor/kotlin.git</url>
         </site>
     </distributionManagement>
 </project>
