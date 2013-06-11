@@ -88,7 +88,7 @@
         <artifactId>site-maven-plugin</artifactId>
         <version>0.8</version>
         <configuration>
-          <message>Update Kotlin API Docs (build ${build.number}})</message>
+          <message>Update Kotlin API Docs (build ${build.number})</message>
           <server>jetbrains-kotlin</server>
         </configuration>
         <executions>
